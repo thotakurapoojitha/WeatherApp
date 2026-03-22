@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeatherWave - Real Time Weather</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            background-image:
+                linear-gradient(135deg, rgba(0, 0, 40, 0.4), rgba(40, 0, 60, 0.4)),
+                url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 2;
+        }
+
+        .weather-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            opacity: 0.18;
+        }
+
+        .header {
+            height: 38vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem;
+            z-index: 2;
+        }
+
+        .header-content {
+            text-align: center;
+            color: white;
+            animation: fadeInUp 1s ease-out;
+            text-shadow: 0 2px 15px rgba(0,0,0,0.4);
+        }
+
+        .app-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ffffff, #f5f5f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .location-info {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .location {
+            font-size: 1.3rem;
+            font-weight: 500;
+            opacity: 0.95;
+            padding: 0.6rem 1.3rem;
+            border-radius: 999px;
+            background: rgba(0,0,0,0.25);
+            backdrop-filter: blur(10px);
+        }
+
+        .location-btn {
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 0.8rem 1.6rem;
+            border-radius: 999px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            backdrop-filter: blur(14px);
+            transition: all 0.3s ease;
+        }
+
+        .location-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            z-index: 2;
+            animation: slideInUp 0.8s ease-out 0.3s both;
+            overflow-y: auto;
+        }
+
+        .current-weather-card {
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(24px);
+            border-radius: 30px;
+            padding: 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            transition: all 0.5s ease;
+        }
+
+        .current-weather-card:hover { transform: translateY(-10px); }
+
+        .weather-icon {
+            font-size: 6rem;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.6));
+        }
+
+        .temp-container { flex: 1; }
+
+        .current-temp {
+            font-size: 5rem;
+            font-weight: 700;
+            color: white;
+            line-height: 1;
+        }
+
+        .temp-unit {
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.85);
+            cursor: pointer;
+        }
+
+        .weather-details { text-align: right; }
+
+        .condition {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .time {
+            font-size: 1.3rem;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .today-highlights {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .highlight-card {
+            background: rgba(0, 0, 0, 0.38);
+            backdrop-filter: blur(18px);
+            border-radius: 20px;
+            padding: 1.7rem 1rem;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.16);
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .highlight-card:hover {
+            transform: translateY(-6px);
+            background: rgba(0, 0, 0, 0.55);
+        }
+
+        .highlight-value {
+            font-size: 1.9rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 0.4rem;
+        }
+
+        .highlight-label {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.85);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .forecast-section {
+            background: rgba(0, 0, 0, 0.38);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .forecast-title {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+
+        .forecast-day {
+            text-align: center;
+            color: white;
+            padding: 1rem;
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.35);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.18);
+        }
+
+        .forecast-day:hover {
+            transform: translateY(-5px);
+            background: rgba(0,0,0,0.55);
+        }
+
+        .forecast-day-icon {
+            font-size: 2rem;
+            margin: 0.5rem 0;
+        }
+
+        .forecast-temps {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .search-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .search-container {
+            background: rgba(255,255,255,0.95);
+            padding: 2.5rem;
+            border-radius: 25px;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            min-width: 350px;
+        }
+
+        #cityInput {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border: 2px solid rgba(0,0,0,0.1);
+            border-radius: 15px;
+            font-size: 1.1rem;
+        }
+
+        #cityInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-btn, .close-search {
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .search-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .close-search {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .current-weather-card {
+                flex-direction: column;
+                text-align: center;
+            }
+            .app-title { font-size: 2.5rem; }
+            .current-temp { font-size: 4rem; }
+            .search-container {
+                flex-direction: column;
+                min-width: 90vw;
+            }
+        }
+
+        .loading { opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <canvas class="weather-canvas" id="weatherCanvas"></canvas>
+        
+        <header class="header">
+            <div class="header-content">
+                <h1 class="app-title">Weather<span style="color: #ff6b6b;">Wave</span></h1>
+                <div class="location-info">
+                    <div class="location" id="location">Detecting location...</div>
+                    <!-- NEW: current location button -->
+                    <button class="location-btn" id="currentLocationBtn">📍 Current</button>
+                    <button class="location-btn" id="locationBtn">🔍 Search</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="current-weather-card">
+                <div class="weather-icon" id="currentIcon">🌤️</div>
+                <div class="temp-container">
+                    <div class="current-temp" id="currentTemp">28</div>
+                    <span class="temp-unit" id="tempUnit">°C</span>
+                </div>
+                <div class="weather-details">
+                    <div class="condition" id="condition">Sunny</div>
+                    <h3 class="time" id="currentTime">--:--</h3>
+                </div>
+            </div>
+
+            <div class="today-highlights">
+                <div class="highlight-card">
+                    <div class="highlight-value" id="feelsLike">30°</div>
+                    <div class="highlight-label">Feels Like</div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-value" id="humidity">65%</div>
+                    <div class="highlight-label">Humidity</div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-value" id="wind">12 km/h</div>
+                    <div class="highlight-label">Wind</div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-value" id="pressure">1013 hPa</div>
+                    <div class="highlight-label">Pressure</div>
+                </div>
+            </div>
+
+            <div class="forecast-section">
+                <h3 class="forecast-title">🌤️ 7-Day Forecast</h3>
+                <div class="forecast-grid" id="forecastGrid"></div>
+            </div>
+        </main>
+
+        <div class="search-overlay" id="searchOverlay">
+            <div class="search-container">
+                <input type="text" id="cityInput" placeholder="Enter city name (e.g. Mumbai, Delhi, London)">
+                <button class="search-btn" id="searchBtn">Search</button>
+                <button class="close-search" id="closeSearch">✕</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WEATHER_API = 'https://wttr.in';
+        let currentCity = 'Hyderabad';
+        let isCelsius = true;
+
+        const locationEl = document.getElementById('location');
+        const currentTempEl = document.getElementById('currentTemp');
+        const tempUnitEl = document.getElementById('tempUnit');
+        const conditionEl = document.getElementById('condition');
+        const currentTimeEl = document.getElementById('currentTime');
+        const currentIconEl = document.getElementById('currentIcon');
+        const locationBtn = document.getElementById('locationBtn');
+        const currentLocationBtn = document.getElementById('currentLocationBtn'); // NEW
+        const searchOverlay = document.getElementById('searchOverlay');
+        const cityInput = document.getElementById('cityInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const closeSearch = document.getElementById('closeSearch');
+        const forecastGrid = document.getElementById('forecastGrid');
+
+        const weatherIcons = {
+            'Sunny': '☀️',
+            'Clear': '☀️',
+            'Cloudy': '☁️',
+            'Partly cloudy': '⛅',
+            'Overcast': '☁️',
+            'Rain': '🌧️',
+            'Light rain': '🌦️',
+            'Patchy rain possible': '🌦️',
+            'Thunderstorm': '⛈️',
+            'Snow': '🌨️'
+        };
+
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        function initApp() {
+            createParticles();
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            locationBtn.onclick = toggleSearch;
+            closeSearch.onclick = toggleSearch;
+            searchBtn.onclick = searchCity;
+            tempUnitEl.onclick = toggleTempUnit;
+            cityInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchCity();
+            });
+
+            // NEW: current location click
+            currentLocationBtn.addEventListener('click', useCurrentLocation);
+
+            // Try current location on first load
+            useCurrentLocation(true);
+
+            // If geolocation fails, still load default city
+            setTimeout(() => {
+                if (!locationEl.textContent || locationEl.textContent.includes('Detecting')) {
+                    loadWeather();
+                }
+            }, 3000);
+        }
+
+        async function loadWeather() {
+            try {
+                document.body.classList.add('loading');
+                const data = await fetchWeather(currentCity);
+                displayWeather(data);
+                displayForecastDemo();
+            } catch (e) {
+                console.error('Weather fetch failed, using demo data:', e);
+                displayDemoWeather();
+                displayForecastDemo();
+            } finally {
+                document.body.classList.remove('loading');
+            }
+        }
+
+        async function fetchWeather(cityOrCoords) {
+            // cityOrCoords can be "City" or "lat,lon" – wttr.in supports both [web:18]
+            const url = `${WEATHER_API}/${encodeURIComponent(cityOrCoords)}?format=j1`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Network response was not ok');
+            const data = await res.json();
+            return parseWeatherData(data);
+        }
+
+        function parseWeatherData(data) {
+            const current = (data && data.current_condition && data.current_condition[0]) || {};
+            const area = data && data.nearest_area && data.nearest_area[0] &&
+                         data.nearest_area[0].areaName && data.nearest_area[0].areaName[0] &&
+                         data.nearest_area[0].areaName[0].value;
+
+            return {
+                city: area || currentCity,
+                temp: parseInt(current.temp_C) || 28,
+                feelsLike: parseInt(current.FeelsLikeC) || parseInt(current.temp_C) || 30,
+                condition: (current.weatherDesc && current.weatherDesc[0] && current.weatherDesc[0].value) || 'Sunny',
+                humidity: parseInt(current.humidity) || 65,
+                wind: parseInt(current.windspeedKmph) || 12,
+                pressure: parseInt(current.pressure) || 1013
+            };
+        }
+
+        function displayWeather(data) {
+            currentTempEl.textContent = data.temp;
+            conditionEl.textContent = data.condition;
+            currentIconEl.textContent = weatherIcons[data.condition] || '🌤️';
+            locationEl.textContent = data.city;
+            
+            document.getElementById('feelsLike').textContent = `${data.feelsLike}°`;
+            document.getElementById('humidity').textContent = `${data.humidity}%`;
+            document.getElementById('wind').textContent = `${data.wind} km/h`;
+            document.getElementById('pressure').textContent = `${data.pressure} hPa`;
+
+            if (!isCelsius) {
+                const c = data.temp;
+                currentTempEl.textContent = Math.round(c * 9/5 + 32);
+                tempUnitEl.textContent = '°F';
+            } else {
+                tempUnitEl.textContent = '°C';
+            }
+        }
+
+        function displayDemoWeather() {
+            displayWeather({
+                city: 'Hyderabad',
+                temp: 28,
+                feelsLike: 30,
+                condition: 'Sunny',
+                humidity: 65,
+                wind: 12,
+                pressure: 1013
+            });
+        }
+
+        function displayForecastDemo() {
+            const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+            forecastGrid.innerHTML = days.map(day => `
+                <div class="forecast-day">
+                    <div>${day}</div>
+                    <div class="forecast-day-icon">☀️</div>
+                    <div class="forecast-temps">28° / 22°</div>
+                    <div>Sunny</div>
+                </div>
+            `).join('');
+        }
+
+        function searchCity() {
+            const city = cityInput.value.trim();
+            if (!city) {
+                alert('Enter city name!');
+                return;
+            }
+
+            searchBtn.textContent = 'Searching...';
+            searchBtn.disabled = true;
+            cityInput.disabled = true;
+
+            currentCity = city;
+
+            fetchWeather(city)
+                .then(data => {
+                    displayWeather(data);
+                    displayForecastDemo();
+                    toggleSearch();
+                })
+                .catch(e => {
+                    console.error('Weather fetch failed:', e);
+                    alert(`Weather data unavailable for "${city}". Showing demo data.`);
+                    displayDemoWeather();
+                    displayForecastDemo();
+                    toggleSearch();
+                })
+                .finally(() => {
+                    searchBtn.textContent = 'Search';
+                    searchBtn.disabled = false;
+                    cityInput.disabled = false;
+                    cityInput.value = '';
+                });
+        }
+
+        function toggleSearch() {
+            const isVisible = searchOverlay.style.display === 'flex';
+            if (isVisible) {
+                searchOverlay.style.display = 'none';
+            } else {
+                searchOverlay.style.display = 'flex';
+                setTimeout(() => cityInput.focus(), 50);
+            }
+        }
+
+        function toggleTempUnit() {
+            const temp = parseInt(currentTempEl.textContent);
+            if (isNaN(temp)) return;
+
+            if (isCelsius) {
+                currentTempEl.textContent = Math.round(temp * 9/5 + 32);
+                tempUnitEl.textContent = '°F';
+            } else {
+                currentTempEl.textContent = Math.round((temp - 32) * 5/9);
+                tempUnitEl.textContent = '°C';
+            }
+            isCelsius = !isCelsius;
+        }
+
+        function updateTime() {
+            currentTimeEl.textContent = new Date().toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
+        // NEW: use browser geolocation
+        function useCurrentLocation(isAuto = false) {
+            if (!navigator.geolocation) {
+                console.warn('Geolocation not supported'); // [web:17]
+                if (!isAuto) alert('Geolocation is not supported by this browser.');
+                locationEl.textContent = currentCity;
+                loadWeather();
+                return;
+            }
+
+            locationEl.textContent = 'Detecting location...';
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const coordString = `${lat.toFixed(4)},${lon.toFixed(4)}`; // wttr.in supports coords [web:18]
+                    try {
+                        document.body.classList.add('loading');
+                        const data = await fetchWeather(coordString);
+                        currentCity = data.city;
+                        displayWeather(data);
+                        displayForecastDemo();
+                    } catch (e) {
+                        console.error('Geo weather failed, fallback to default:', e);
+                        locationEl.textContent = currentCity;
+                        displayDemoWeather();
+                        displayForecastDemo();
+                    } finally {
+                        document.body.classList.remove('loading');
+                    }
+                },
+                (error) => {
+                    console.warn('Geolocation error:', error); // [web:12][web:17]
+                    if (!isAuto) {
+                        alert('Could not get your location. Please allow location access or use search.');
+                    }
+                    locationEl.textContent = currentCity;
+                    if (isAuto) loadWeather();
+                }
+            );
+        }
+
+        function createParticles() {
+            const canvas = document.getElementById('weatherCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 2 + 0.5,
+                    vy: Math.random() * 0.5 + 0.2
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y += p.vy, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255,255,255,${p.r/4})`;
+                    ctx.fill();
+                    if (p.y > canvas.height) p.y = 0;
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        }
+    </script>
+</body>
+</html>
